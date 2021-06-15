@@ -1,1 +1,1 @@
-export { CacheStore } from './cache-store';
+export { CacheStore, CacheStoreFetcher } from './cache-store';
