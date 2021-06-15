@@ -1,6 +1,6 @@
 {
   "name": "@kubevious/helper-cache",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A Cache Library",
   "main": "dist/index.js",
   "types": "dist",
