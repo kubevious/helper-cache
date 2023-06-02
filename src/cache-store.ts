@@ -1,9 +1,9 @@
 import _ from 'the-lodash';
 import { ILogger } from 'the-logger';
-import { Promise, Resolvable } from 'the-promise';
-import { default as LRUCache } from 'lru-cache';
+import { MyPromise, Resolvable } from 'the-promise';
+import { LRUCache } from 'lru-cache';
 
-export class CacheStore<K = any, V = any>
+export class CacheStore<K = any, V extends object = object>
 {
     private _logger : ILogger;
     private _cache : LRUCache<string, V>;
@@ -20,19 +20,18 @@ export class CacheStore<K = any, V = any>
             maxAgeMs: params.maxAgeMs || undefined
         };
 
-        const options : LRUCache.Options<string, V> = {
+        this._cache = new LRUCache<string, V>({
             max: this._params.size,
-            maxAge: this._params.maxAgeMs
-        }
-        this._cache = new LRUCache(options);
+            ttl: this._params.maxAgeMs
+        });
 
-        if (this._params.maxAgeMs)
-        {
-            this._interval = setInterval(() => {
-                // this._logger.info("PRUNE");
-                this._cache.prune();
-            }, this._params.maxAgeMs / 2);
-        }
+        // if (this._params.maxAgeMs)
+        // {
+        //     this._interval = setInterval(() => {
+        //         // this._logger.info("PRUNE");
+        //         this._cache.prune();
+        //     }, this._params.maxAgeMs / 2);
+        // }
     }
 
     close()
@@ -41,7 +40,7 @@ export class CacheStore<K = any, V = any>
             clearInterval(this._interval!)
             this._interval = undefined;
         }
-        this._cache.reset();
+        this._cache.clear();
     }
 
     set(key: K, value: V)
@@ -63,7 +62,7 @@ export class CacheStore<K = any, V = any>
             return Promise.resolve(value!);
         }
         
-        return Promise.try(() => cb(key))
+        return MyPromise.try(() => cb(key))
             .then(newValue => {
                 if (!_.isUndefined(newValue)) {
                     this.set(key, newValue);
@@ -80,7 +79,7 @@ export class CacheStore<K = any, V = any>
                 if (!_.isUndefined(value)) {
                     return Promise.resolve(value!);
                 }
-                return Promise.try(() => cb(key))
+                return MyPromise.try(() => cb(key))
                     .then(newValue => {
                         if (!_.isUndefined(newValue)) {
                             this.set(key, newValue);

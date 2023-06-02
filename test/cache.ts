@@ -1,9 +1,9 @@
 import 'mocha';
-import should = require('should');
+import should from 'should';
 import _ from 'the-lodash';
-import { Promise } from 'the-promise';
 import { CacheStore }  from '../src';
 import { setupLogger, LoggerOptions } from 'the-logger';
+import { MyPromise } from 'the-promise'
 
 const loggerOptions = new LoggerOptions().enableFile(false).pretty(true);
 const logger = setupLogger('test', loggerOptions);
@@ -13,15 +13,15 @@ describe("cache", function() {
     it('simple-case-1', function() {
 
         const cache = new CacheStore(logger);
-        cache.set('foo', 'bar');
+        cache.set('foo', ['bar']);
 
-        should(cache.get('foo')).be.equal('bar');
+        should(cache.get('foo')).be.eql(['bar']);
 
-        cache.set({'foo' : 'bar'}, 'bar1');
-        cache.set({'bar' : 'foo'}, 'bar2');
+        cache.set({'foo' : 'bar'}, ['bar1']);
+        cache.set({'bar' : 'foo'}, ['bar2']);
 
-        should(cache.get({'foo' : 'bar'})).be.equal('bar1');
-        should(cache.get({'bar' : 'foo'})).be.equal('bar2');
+        should(cache.get({'foo' : 'bar'})).be.eql(['bar1']);
+        should(cache.get({'bar' : 'foo'})).be.eql(['bar2']);
     })
 
     it('max-size-default', function() {
@@ -33,7 +33,7 @@ describe("cache", function() {
 
         for(let i = 0; i < COUNT; i++)
         {
-            cache.set(`foo${i}`, `bar${i}`);
+            cache.set(`foo${i}`, [`bar${i}`]);
         }
 
         let setCount = 0;
@@ -64,7 +64,7 @@ describe("cache", function() {
 
         for(let i = 0; i < COUNT; i++)
         {
-            cache.set(`foo${i}`, `bar${i}`);
+            cache.set(`foo${i}`, [`bar${i}`]);
         }
 
         let setCount = 0;
@@ -85,12 +85,12 @@ describe("cache", function() {
 
     it('fetcher1', function() {
 
-        const cache = new CacheStore<string, string>(logger);
-        const fetcher = cache.fetcher((key) => `XX${key}`);
+        const cache = new CacheStore<string, string[]>(logger);
+        const fetcher = cache.fetcher((key) => [`XX${key}`]);
 
         return fetcher.get('foo')
             .then(value => {
-                should(value).be.equal('XXfoo');
+                should(value).be.eql(['XXfoo']);
             });
     })
 
@@ -101,32 +101,32 @@ describe("cache", function() {
 
         const CACHE_SIZE = 100;
 
-        const cache = new CacheStore<string, string>(logger, {
+        const cache = new CacheStore<string, string[]>(logger, {
             size: CACHE_SIZE
         });
 
         const fetcher = cache.fetcher((key) => {
             fetchCount ++ 
             const value = `value-${key}`;
-            return value;
+            return [value];
         });
 
         const COUNT = 1000;
         const range = Array.from(Buffer.alloc(COUNT).keys());
-        return Promise.serial(range, index => {
+        return MyPromise.serial(range, index => {
             return fetcher.get(`foo-${index}`)
                 .then(value => {
-                    should(value).be.equal(`value-foo-${index}`);
+                    should(value).be.eql([`value-foo-${index}`]);
                 })
         })
         .then(() => {
             should(fetchCount).be.equal(COUNT);
         })
         .then(() => {
-            return Promise.serial(_.reverse(range), index => {
+            return MyPromise.serial(_.reverse(range), index => {
                 return fetcher.get(`foo-${index}`)
                     .then(value => {
-                        should(value).be.equal(`value-foo-${index}`);
+                        should(value).be.eql([`value-foo-${index}`]);
                     })
             })
         })
@@ -137,17 +137,17 @@ describe("cache", function() {
 
     it('max-age', function() {
 
-        const cache = new CacheStore<string, string>(logger, {
+        const cache = new CacheStore<string, string[]>(logger, {
             maxAgeMs: 100,
         });
 
         return Promise.resolve()
-            .then(() => cache.set('foo1', 'bar1'))
+            .then(() => cache.set('foo1', ['bar1']))
             .then(() => {
                 const value = cache.get('foo1');
-                should(value).be.equal('bar1');
+                should(value).be.eql(['bar1']);
             })
-            .then(() => Promise.timeout(500))
+            .then(() => MyPromise.delay(500))
             .then(() => {
                 const value = cache.get('foo1');
                 should(value).be.undefined();
@@ -164,19 +164,19 @@ describe("cache", function() {
         
         return Promise.resolve()
             .then(() => {
-                return cache.dynamicGet("foo-1", (key) => `bar-${key}` )
+                return cache.dynamicGet("foo-1", (key) => [`bar-${key}`] )
             })
             .then(result => {
-                should(result).be.equal(`bar-foo-1`);
+                should(result).be.eql([`bar-foo-1`]);
             })
             .then(() => {
                 return cache.dynamicGet("foo-1", (key) => {
                     counter ++;
-                    return `XXX-${key}`
+                    return [`XXX-${key}`]
                 } )
             })
             .then(result => {
-                should(result).be.equal(`bar-foo-1`);
+                should(result).be.eql([`bar-foo-1`]);
                 should(counter).be.equal(0);
             })
 
@@ -187,13 +187,13 @@ describe("cache", function() {
 
         const cache = new CacheStore(logger);
 
-        cache.set({'foo' : 'bar'}, 'bar');
-        should(cache.get({'foo' : 'bar'})).be.equal('bar');
+        cache.set({'foo' : 'bar'}, ['bar']);
+        should(cache.get({'foo' : 'bar'})).be.eql(['bar']);
         should(cache.get({'foo1' : 'bar'})).be.undefined();
 
-        cache.set({'foo1' : 'bar1', 'foo2' : 'bar1'}, 'bar1');
-        should(cache.get({'foo1' : 'bar1', 'foo2' : 'bar1'})).be.equal('bar1');
-        should(cache.get({'foo2' : 'bar1', 'foo1' : 'bar1'})).be.equal('bar1');
+        cache.set({'foo1' : 'bar1', 'foo2' : 'bar1'}, ['bar1']);
+        should(cache.get({'foo1' : 'bar1', 'foo2' : 'bar1'})).be.eql(['bar1']);
+        should(cache.get({'foo2' : 'bar1', 'foo1' : 'bar1'})).be.eql(['bar1']);
 
     })
 

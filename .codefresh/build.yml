@@ -40,17 +40,17 @@ steps:
   prepare:
     title: Prepare Dependencies
     stage: build
-    image: 'kubevious/node-builder:12'
+    image: 'kubevious/node-builder:14'
     working_directory: "${{CICD_REPO_PATH}}"
     commands:
       - echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > ~/.npmrc
       - env
-      - npm ci
+      - yarn install --frozen-lockfile
 
   compile:
     title: Compile
     stage: build
-    image: 'kubevious/node-builder:12'
+    image: 'kubevious/node-builder:14'
     working_directory: "${{CICD_REPO_PATH}}"
     commands:
       - npm run build
@@ -58,7 +58,7 @@ steps:
   run_unit_test:
     title: Run Unit Tests
     stage: test
-    image: 'kubevious/node-builder:12'
+    image: 'kubevious/node-builder:14'
     working_directory: "${{CICD_REPO_PATH}}"
     commands:
       - pwd
@@ -68,7 +68,7 @@ steps:
   publish:
     title: Publish
     stage: publish
-    image: 'kubevious/node-builder:12'
+    image: 'kubevious/node-builder:14'
     working_directory: "${{CICD_REPO_PATH}}"
     when: 
       condition: 
